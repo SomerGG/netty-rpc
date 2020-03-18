@@ -48,13 +48,13 @@ public class RPCNioServer implements ApplicationContextAware, InitializingBean {
             workerGroup = new NioEventLoopGroup();//用于进行 SocketChannel 的读写
             server.group(boosGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)//设置创建的 Channel 为 NioServerSocketChannel
-                    .option(ChannelOption.SO_BACKLOG, 1024)//针对主线程的配置，最大分配线程数量设置为1024
+                    .option(ChannelOption.SO_BACKLOG, 1024)//客户端请求等待队列长度，设置为1024
                     .childOption(ChannelOption.SO_KEEPALIVE, true)//对于子线程的配置，保持长连接
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             ChannelPipeline pipeline = channel.pipeline();
-                            //设置协议解码器
+                            //设置协议解码器(通用半包解码器)
                             pipeline.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
                             //设置协议编码器
                             pipeline.addLast(new LengthFieldPrepender(4));
@@ -71,7 +71,7 @@ public class RPCNioServer implements ApplicationContextAware, InitializingBean {
             future.channel().closeFuture().sync();//等待服务端监听端口关闭
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {//优雅关闭线程池
+        } finally {//关闭线程池
             boosGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
